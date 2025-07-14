@@ -11,14 +11,12 @@ import { ScheduleTask } from './tasks/schedule.task';
 import { EmailProcessor } from './jobs/email.processor';
 import { MetricsModule } from './modules/metrics/metrics.module'; 
 import { AdminModule } from './admin/admin.module';
-
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-
 import { PrismaModule } from './prisma.module';
 
 @Module({
@@ -54,6 +52,7 @@ import { PrismaModule } from './prisma.module';
     NotificationsModule,
     MetricsModule,
     AdminModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

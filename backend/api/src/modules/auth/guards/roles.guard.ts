@@ -1,0 +1,24 @@
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Role } from '@prisma/client';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.get<Role[]>(ROLES_KEY, context.getHandler());
+    if (!requiredRoles) {
+      // Si no hay @Roles en el handler, dejamos pasar
+      return true;
+    }
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+    if (!user) return false;
+    if (requiredRoles.includes(user.role)) {
+      return true;
+    }
+    throw new ForbiddenException('No tienes permisos suficientes');
+  }
+}
