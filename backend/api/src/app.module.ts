@@ -18,6 +18,8 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PrismaModule } from './prisma.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
+import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { PrismaModule } from './prisma.module';
     MetricsModule,
     AdminModule,
     AuthModule,
+    CouponsModule,
+    CartModule
   ],
   controllers: [AppController],
   providers: [

@@ -19,42 +19,6 @@ async function main() {
     },
   });
 
-  // Gerente (Tier II)
-  await prisma.user.upsert({
-    where: { email: 'gerente@demo.com' },
-    update: {},
-    create: {
-      name: 'Gerente Demo',
-      email: 'gerente@demo.com',
-      password: await bcrypt.hash('gerentesecret', saltRounds),
-      role: Role.T_II,
-    },
-  });
-  
-  // Staff (Tier III)
-  await prisma.user.upsert({
-    where: { email: 'staff@demo.com' },
-    update: {},
-    create: {
-      name: 'Staff Demo',
-      email: 'staff@demo.com',
-      password: await bcrypt.hash('staffsecret', saltRounds),
-      role: Role.T_III,
-    },
-  });
-
-  // Cliente (CLI)
-  await prisma.user.upsert({
-    where: { email: 'cliente@demo.com' },
-    update: {},
-    create: {
-      name: 'Cliente Demo',
-      email: 'cliente@demo.com',
-      password: await bcrypt.hash('clientesecret', saltRounds),
-      role: Role.CLI,
-    },
-  });
-
   // Productos
   await prisma.product.upsert({
     where: { sku: 'SKU-001' },
