@@ -27,7 +27,7 @@ export class CartService {
       include: { product: true },
       orderBy: { createdAt: 'asc' },
     });
-    return items.map(i => this.mapItem(i));
+    return items.map((i) => this.mapItem(i));
   }
 
   async findOne(id: string, userId: string): Promise<CartItemResponseDto> {
@@ -42,41 +42,67 @@ export class CartService {
   }
 
   async add(userId: string, dto: AddCartItemDto): Promise<CartItemResponseDto> {
-    // Si ya existe, sumamos
-    const existing = await this.prisma.cartItem.findUnique({
-      where: { userId_productId: { userId, productId: dto.productId } },
-      include: { product: true },
-    });
-    if (existing) {
-      const updated = await this.prisma.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + dto.quantity },
-        include: { product: true },
-      });
-      return this.mapItem(updated);
-    }
-    // Si no, creamos
-    const item = await this.prisma.cartItem.create({
-      data: {
-        user: { connect: { id: userId } },
-        product: { connect: { id: dto.productId } },
+    const item = await this.prisma.cartItem.upsert({
+      where: {
+        userId_productId: {
+          userId,
+          productId: dto.productId,
+        },
+      },
+      update: { quantity: { increment: dto.quantity } },
+      create: {
+        userId,
+        productId: dto.productId,
         quantity: dto.quantity,
       },
       include: { product: true },
     });
+
     return this.mapItem(item);
   }
 
-  async update(id: string, userId: string, dto: UpdateCartItemDto): Promise<CartItemResponseDto> {
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdateCartItemDto,
+  ): Promise<CartItemResponseDto> {
+    // 1) Log de entrada
+    console.log(
+      '[CartService.update] id:',
+      id,
+      'userId:',
+      userId,
+      'newQty:',
+      dto.quantity,
+    );
+
+    // 2) Busca en BD
     const item = await this.prisma.cartItem.findUnique({ where: { id } });
+    // 3) Log de lo que encontró
+    console.log('[CartService.update] findUnique result:', item);
+
+    // 4) Verificación de pertenencia
     if (!item || item.userId !== userId) {
+      console.log(
+        '[CartService.update] NotFound porque',
+        'item:',
+        item,
+        'item?.userId:',
+        item?.userId,
+        '!== userId:',
+        userId,
+      );
       throw new NotFoundException(`Cart item ${id} not found`);
     }
+
+    // 5) Si todo ok, actualiza
     const updated = await this.prisma.cartItem.update({
       where: { id },
       data: { quantity: dto.quantity },
       include: { product: true },
     });
+
+    console.log('[CartService.update] updated:', updated);
     return this.mapItem(updated);
   }
 

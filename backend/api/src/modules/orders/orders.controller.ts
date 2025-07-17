@@ -28,16 +28,28 @@ export class OrdersController {
     private readonly cartService: CartService,
   ) {}
 
+  /** Devuelve el id de usuario sin importar la propiedad usada en el payload */
+  private getUserId(req: any): string {
+    return (
+      req.user?.sub ?? // estándar JWT
+      req.user?.userId ?? // a veces se llama así
+      req.user?.id
+    ); // fallback
+  }
+
+  // ────────────────────────────────────────────
   @Get()
   @Roles(Role.CLI, Role.T_I)
   async findAll(@Request() req): Promise<OrderResponseDto[]> {
+    const userId = this.getUserId(req); // ← cambio
     const orders = await this.ordersService.findAll();
     if (req.user.role === Role.CLI) {
-      return orders.filter((o) => o.userId === req.user.sub);
+      return orders.filter((o) => o.userId === userId); // ← cambio
     }
     return orders;
   }
 
+  // ────────────────────────────────────────────
   @Get(':id')
   @Roles(Role.CLI, Role.T_I)
   async findOne(
@@ -45,12 +57,14 @@ export class OrdersController {
     @Request() req,
   ): Promise<OrderResponseDto> {
     const order = await this.ordersService.findOne(id);
-    if (req.user.role === Role.CLI && order.userId !== req.user.sub) {
+    const userId = this.getUserId(req); // ← cambio
+    if (req.user.role === Role.CLI && order.userId !== userId) {
       throw new BadRequestException('No tienes permiso para ver esta orden');
     }
     return order;
   }
 
+  // ────────────────────────────────────────────
   /** Checkout: crea orden con todo el cart, opcional coupon, y limpia el carrito */
   @Post('checkout')
   @Roles(Role.CLI)
@@ -58,23 +72,26 @@ export class OrdersController {
     @Request() req,
     @Body('couponCode') couponCode?: string,
   ): Promise<OrderResponseDto> {
-    const userId = req.user.sub;
+    const userId = this.getUserId(req); // ← cambio
     const cartItems = await this.cartService.findAll(userId);
-    if (cartItems.length === 0) {
+    if (!cartItems.length) {
       throw new BadRequestException('Your cart is empty');
     }
+
     const createDto: CreateOrderDto = {
       items: cartItems.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
       })),
-      couponCode,
+      ...(couponCode?.trim() && { couponCode: couponCode.trim() }),
     };
+
     const order = await this.ordersService.create(createDto, userId);
     await this.cartService.clear(userId);
     return order;
   }
 
+  // ────────────────────────────────────────────
   @Post()
   @Roles(Role.CLI, Role.T_I)
   async create(
@@ -82,7 +99,7 @@ export class OrdersController {
     @Body() dto: CreateOrderDto,
   ): Promise<OrderResponseDto> {
     const isAdmin = req.user.role === Role.T_I;
-    const userId = isAdmin && dto.userId ? dto.userId : req.user.sub;
+    const userId = isAdmin && dto.userId ? dto.userId : this.getUserId(req); // ← cambio
     return this.ordersService.create(dto, userId);
   }
 

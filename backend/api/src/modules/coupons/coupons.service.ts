@@ -22,28 +22,27 @@ export class CouponsService {
   }
 
   async create(dto: CreateCouponDto): Promise<CouponResponseDto> {
-    return this.prisma.coupon.create({
+    const coupon = await this.prisma.coupon.create({
       data: {
         code: dto.code,
         discountPercent: dto.discountPercent,
         validUntil: new Date(dto.validUntil),
+        maxUses: dto.maxUses ?? null, // <- aquí lo mapeas
       },
     });
+    return coupon;
   }
 
   async update(id: string, dto: UpdateCouponDto): Promise<CouponResponseDto> {
-    await this.findOne(id);
     return this.prisma.coupon.update({
       where: { id },
       data: {
-        ...(dto.code !== undefined && { code: dto.code }),
         ...(dto.discountPercent !== undefined && {
           discountPercent: dto.discountPercent,
         }),
-        ...(dto.validUntil !== undefined && {
-          validUntil: new Date(dto.validUntil),
-        }),
+        ...(dto.validUntil && { validUntil: new Date(dto.validUntil) }),
         ...(dto.maxUses !== undefined && { maxUses: dto.maxUses }),
+        ...(dto.code && { code: dto.code }),
       },
     });
   }
@@ -54,17 +53,36 @@ export class CouponsService {
   }
 
   async validateByCode(code: string): Promise<ValidateCouponResponseDto> {
-    const coupon = await this.prisma.coupon.findUnique({ where: { code } });
+    const coupon = await this.prisma.coupon.findUnique({
+      where: { code },
+    });
     if (!coupon) {
-      return { code, valid: false, discountPercent: 0, validUntil: null };
+      throw new NotFoundException(`Coupon '${code}' not found`);
     }
+
     const now = new Date();
-    const valid = coupon.validUntil > now;
+    let valid = true;
+    let reason: string | undefined;
+
+    // 1) Ha expirado?
+    if (coupon.validUntil < now) {
+      valid = false;
+      reason = 'Expired';
+    }
+    // 2) Se han agotado los usos?
+    else if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
+      valid = false;
+      reason = 'Usage limit reached';
+    }
+
     return {
       code: coupon.code,
       valid,
       discountPercent: coupon.discountPercent,
       validUntil: coupon.validUntil,
+      maxUses: coupon.maxUses ?? undefined,
+      usedCount: coupon.usedCount,
+      reason,
     };
   }
 }

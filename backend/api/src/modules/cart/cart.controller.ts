@@ -1,3 +1,4 @@
+// src/modules/cart/cart.controller.ts
 import {
   Controller,
   Get,
@@ -8,6 +9,7 @@ import {
   Body,
   Request,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
@@ -24,22 +26,25 @@ import { Role } from '@prisma/client';
 export class CartController {
   constructor(private readonly service: CartService) {}
 
+  private getUserId(req): string {
+    const id = req.user?.sub ?? req.user?.id;
+    if (!id) throw new BadRequestException('User id missing in JWT');
+    return id;
+  }
+
   @Get()
   findAll(@Request() req): Promise<CartItemResponseDto[]> {
-    return this.service.findAll(req.user.sub);
+    return this.service.findAll(this.getUserId(req));
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Request() req): Promise<CartItemResponseDto> {
-    return this.service.findOne(id, req.user.sub);
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.service.findOne(id, this.getUserId(req));
   }
 
   @Post()
-  add(
-    @Request() req,
-    @Body() dto: AddCartItemDto,
-  ): Promise<CartItemResponseDto> {
-    return this.service.add(req.user.sub, dto);
+  add(@Request() req, @Body() dto: AddCartItemDto) {
+    return this.service.add(this.getUserId(req), dto);
   }
 
   @Patch(':id')
@@ -47,17 +52,24 @@ export class CartController {
     @Param('id') id: string,
     @Request() req,
     @Body() dto: UpdateCartItemDto,
-  ): Promise<CartItemResponseDto> {
-    return this.service.update(id, req.user.sub, dto);
+  ) {
+    const userId = this.getUserId(req);
+    console.log(
+      '[CartController] PATCH /cart/:id → id=',
+      id,
+      'userId=',
+      userId,
+    );
+    return this.service.update(id, userId, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Request() req): Promise<void> {
-    return this.service.remove(id, req.user.sub);
+  remove(@Param('id') id: string, @Request() req) {
+    return this.service.remove(id, this.getUserId(req));
   }
 
   @Delete()
-  clear(@Request() req): Promise<void> {
-    return this.service.clear(req.user.sub);
+  clear(@Request() req) {
+    return this.service.clear(this.getUserId(req));
   }
 }

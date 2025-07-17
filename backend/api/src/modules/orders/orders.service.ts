@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -33,25 +37,27 @@ export class OrdersService {
     return this.mapOrder(order);
   }
 
-  /** Genera un code único en formato #ABC123 */
+  /** Genera un código secuencial estilo #AAA000, #AAA001, … */
   private async generateOrderCode(): Promise<string> {
-    function randomCode() {
-      const letters = Array.from({ length: 3 })
-        .map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26)))
-        .join('');
-      const numbers = Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, '0');
-      return `#${letters}${numbers}`;
-    }
+    // 1) cuántas órdenes existen
+    const count = await this.prisma.order.count(); // 0 para la primera
 
-    let code: string;
-    let exists: any;
-    do {
-      code = randomCode();
-      exists = await this.prisma.order.findUnique({ where: { code } });
-    } while (exists);
-    return code;
+    // 2) letras = floor(count / 1000) en base‑26 de 3 posiciones
+    let lettersIndex = Math.floor(count / 1000); // 0..17575 (26^3‑1)
+    const letters = Array.from({ length: 3 })
+      .reverse() // LSB primero
+      .map(() => {
+        const char = String.fromCharCode(65 + (lettersIndex % 26));
+        lettersIndex = Math.floor(lettersIndex / 26);
+        return char;
+      })
+      .reverse() // vuelve al orden ABC
+      .join('');
+
+    // 3) números = count % 1000, siempre 3 dígitos
+    const numbers = (count % 1000).toString().padStart(3, '0');
+
+    return `#${letters}${numbers}`; // #AAA000, #AAA001…
   }
 
   /** 3) Crea una orden, aplica cupón e incrementa usedCount */
@@ -59,9 +65,12 @@ export class OrdersService {
     // → Calcula subtotal y arma items
     let subtotal = 0;
     const itemsData = await Promise.all(
-      dto.items.map(async i => {
-        const prod = await this.prisma.product.findUnique({ where: { id: i.productId } });
-        if (!prod) throw new NotFoundException(`Product ${i.productId} not found`);
+      dto.items.map(async (i) => {
+        const prod = await this.prisma.product.findUnique({
+          where: { id: i.productId },
+        });
+        if (!prod)
+          throw new NotFoundException(`Product ${i.productId} not found`);
         subtotal += prod.price * i.quantity;
         return {
           product: { connect: { id: i.productId } },
@@ -75,9 +84,13 @@ export class OrdersService {
     let couponConnect: { connect: { id: string } } | undefined;
     let discountPercent = 0;
     if (dto.couponCode) {
-      const coupon = await this.prisma.coupon.findUnique({ where: { code: dto.couponCode } });
-      if (!coupon) throw new NotFoundException(`Coupon ${dto.couponCode} not found`);
-      if (coupon.validUntil <= new Date()) throw new BadRequestException('Coupon expired');
+      const coupon = await this.prisma.coupon.findUnique({
+        where: { code: dto.couponCode },
+      });
+      if (!coupon)
+        throw new NotFoundException(`Coupon ${dto.couponCode} not found`);
+      if (coupon.validUntil <= new Date())
+        throw new BadRequestException('Coupon expired');
       if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
         throw new BadRequestException('Coupon usage limit reached');
       }
@@ -115,7 +128,10 @@ export class OrdersService {
   }
 
   /** 4) Actualiza el status */
-  async updateStatus(id: string, dto: UpdateOrderStatusDto): Promise<OrderResponseDto> {
+  async updateStatus(
+    id: string,
+    dto: UpdateOrderStatusDto,
+  ): Promise<OrderResponseDto> {
     await this.findOne(id);
     const order = await this.prisma.order.update({
       where: { id },
@@ -140,7 +156,7 @@ export class OrdersService {
       id: o.id,
       code: o.code,
       userId: o.userId,
-      items: o.items.map(i => ({
+      items: o.items.map((i) => ({
         productId: i.productId,
         name: i.product.name,
         price: i.price,
@@ -163,6 +179,6 @@ export class OrdersService {
 
   /** Mappea un array de órdenes */
   private mapOrders(arr: any[]): OrderResponseDto[] {
-    return arr.map(o => this.mapOrder(o));
+    return arr.map((o) => this.mapOrder(o));
   }
 }

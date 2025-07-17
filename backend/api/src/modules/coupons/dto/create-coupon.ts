@@ -1,26 +1,20 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsNumber,
-  Min,
-  IsISO8601,
-  IsOptional,
-} from 'class-validator';
+// src/modules/coupons/dto/create-coupon.dto.ts
+
+import { IsString, IsInt, Min, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateCouponDto {
   @IsString()
-  @IsNotEmpty()
   code: string;
 
-  @IsNumber()
+  @IsInt()
   @Min(0)
   discountPercent: number;
 
-  @IsISO8601()
+  @IsDateString()
   validUntil: string;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  maxUses?: number;    // ← permite establecer límite de usos
+  @IsOptional()             // <- así permitimos que venga o no
+  @IsInt()
+  @Min(1)
+  maxUses?: number;         // <- aquí lo declaras
 }

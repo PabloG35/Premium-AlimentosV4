@@ -3,13 +3,17 @@ import {
   ValidateNested,
   IsString,
   IsOptional,
+  IsNotEmpty,
   IsNumber,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ItemDto {
-  @IsString() productId: string;
-  @IsNumber() quantity: number;
+  @IsString()
+  productId: string;
+
+  @IsNumber()
+  quantity: number;
 }
 
 export class CreateOrderDto {
@@ -17,8 +21,13 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => ItemDto)
   items: ItemDto[];
-  userId?: string;
+
+  @IsOptional() 
   @IsString()
+  @IsNotEmpty()
+  userId?: string;
+
   @IsOptional()
-  couponCode?: string; 
+  @IsString()
+  couponCode?: string;
 }
