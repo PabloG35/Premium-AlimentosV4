@@ -1,3 +1,4 @@
+// src/modules/orders/dto/create-order.dto.ts
 import {
   IsArray,
   ValidateNested,
@@ -22,7 +23,7 @@ export class CreateOrderDto {
   @Type(() => ItemDto)
   items: ItemDto[];
 
-  @IsOptional() 
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   userId?: string;

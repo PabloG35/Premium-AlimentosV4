@@ -4,8 +4,9 @@ export class ProductResponseDto {
   sku: string;
   name: string;
   price: number;
-  description: string | null;
+  description?: string;
   stock: number;
+  imageUrl?: string; 
   createdAt: Date;
   updatedAt: Date;
 }

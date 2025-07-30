@@ -8,19 +8,6 @@ import { CartItemResponseDto } from './dto/cart-item-response.dto';
 export class CartService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private mapItem(i: any): CartItemResponseDto {
-    return {
-      id: i.id,
-      productId: i.productId,
-      name: i.product.name,
-      price: i.product.price,
-      quantity: i.quantity,
-      subtotal: +(i.product.price * i.quantity).toFixed(2),
-      createdAt: i.createdAt,
-      updatedAt: i.updatedAt,
-    };
-  }
-
   async findAll(userId: string): Promise<CartItemResponseDto[]> {
     const items = await this.prisma.cartItem.findMany({
       where: { userId },
@@ -28,6 +15,22 @@ export class CartService {
       orderBy: { createdAt: 'asc' },
     });
     return items.map((i) => this.mapItem(i));
+  }
+
+  private mapItem(i: any): CartItemResponseDto {
+    const price = i.product.price;
+    const quantity = i.quantity;
+    return {
+      id: i.id,
+      productId: i.productId,
+      name: i.product.name,
+      price: price,
+      quantity: quantity,
+      subtotal: +(price * quantity).toFixed(2),
+      imageUrl: i.product.imageUrl ?? null,
+      createdAt: i.createdAt,
+      updatedAt: i.updatedAt,
+    };
   }
 
   async findOne(id: string, userId: string): Promise<CartItemResponseDto> {

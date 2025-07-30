@@ -2,18 +2,25 @@ import {
   Controller,
   Get,
   Post,
-  Body,
-  Param,
-  Query,
   Put,
   Delete,
+  Param,
+  Body,
+  Query,
   ParseIntPipe,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express } from 'express';
+
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
+import { CloudinaryClient } from 'src/clients/cloudinary.client';
 
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
@@ -22,49 +29,52 @@ import { Role } from '@prisma/client';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly service: ProductsService) {}
+  constructor(
+    private readonly svc: ProductsService,
+    private readonly cloud: CloudinaryClient, // ← inyectar aquí
+  ) {}
 
-  // Público: lista productos
-  @Get()
-  async findAll(
+  @Get() findAll(
     @Query('skip', ParseIntPipe) skip = 0,
     @Query('take', ParseIntPipe) take = 100,
-  ): Promise<ProductResponseDto[]> {
-    return this.service.findAll(skip, take);
+  ) {
+    return this.svc.findAll(skip, take);
   }
 
-  // Público: detalle de un producto
-  @Get(':id')
-  async findOne(@Param('id') id: string): Promise<ProductResponseDto> {
-    return this.service.findOne(id);
+  @Get(':id') findOne(@Param('id') id: string) {
+    return this.svc.findOne(id);
   }
 
-  // Solo Admin (T_I): crear producto
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.T_I)
   @Post()
-  async create(
-    @Body() dto: CreateProductDto,
-  ): Promise<ProductResponseDto> {
-    return this.service.create(dto);
-  }
-
-  // Solo Tier II y Admin (T_II, T_I): actualizar producto
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.T_II, Role.T_I)
-  @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateProductDto,
-  ): Promise<ProductResponseDto> {
-    return this.service.update(id, dto);
+  create(@Body() dto: CreateProductDto) {
+    return this.svc.create(dto);
   }
 
-  // Solo Admin (T_I): borrar producto
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.T_I)
+  @Put(':id')
+  @Roles(Role.T_II, Role.T_I)
+  update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    return this.svc.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.service.remove(id);
+  @Roles(Role.T_I)
+  remove(@Param('id') id: string) {
+    return this.svc.remove(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post(':id/image')
+  @Roles(Role.T_II, Role.T_I)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<ProductResponseDto> {
+    const url = await this.cloud.uploadImage(file);
+    return this.svc.update(id, { imageUrl: url });
   }
 }

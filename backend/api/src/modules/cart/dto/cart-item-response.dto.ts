@@ -4,7 +4,8 @@ export class CartItemResponseDto {
   name: string;
   price: number;
   quantity: number;
-  subtotal: number;  // price * quantity
+  subtotal: number;  
+  imageUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -20,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PrismaModule } from './prisma.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { CartModule } from './modules/cart/cart.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -56,7 +57,8 @@ import { CartModule } from './modules/cart/cart.module';
     AdminModule,
     AuthModule,
     CouponsModule,
-    CartModule
+    CartModule,
+    ReviewsModule
   ],
   controllers: [AppController],
   providers: [

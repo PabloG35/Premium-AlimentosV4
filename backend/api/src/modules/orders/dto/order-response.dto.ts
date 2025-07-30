@@ -1,18 +1,28 @@
-import { OrderStatus } from '@prisma/client';
-import { OrderItemResponseDto } from './order-item-response.dto';
-
+// src/modules/orders/dto/order-response.dto.ts
 export class OrderResponseDto {
   id: string;
   code: string;
   userId: string;
-  items: OrderItemResponseDto[];
+  items: {
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    imageUrl: string | null;
+  }[];
+  subtotal: number;
+  discountAmount: number;
+  shippingCost: number;
   total: number;
-  status: OrderStatus;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
-  coupon?: {
-    id: string;
-    code: string;
-    discountPercent: number;
-  };
+  userEmail: string;
+  userName: string;
+  coupon?: { id: string; code: string; discountPercent: number };
+
+  // Opcionales (si luego agregas en BD)
+  shippingAddress?: string;
+  paymentMethod?: string;
+  trackingUrl?: string;
 }
