@@ -11,19 +11,17 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "Rating": {
+    "rating": {
       "type": "integer"
     },
-    "content": {
-      "type": "blocks"
-    },
-    "author_name": {
-      "type": "string"
+    "comment": {
+      "type": "richtext"
     },
     "product": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::product.product"
+      "relation": "manyToOne",
+      "target": "api::product.product",
+      "inversedBy": "reviews"
     }
   }
 }

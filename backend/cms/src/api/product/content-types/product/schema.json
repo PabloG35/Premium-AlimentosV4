@@ -11,18 +11,38 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "sku": {
+      "type": "string",
+      "unique": true
+    },
     "name": {
       "type": "string"
-    },
-    "description": {
-      "type": "blocks"
     },
     "price": {
       "type": "decimal",
       "default": 0
     },
+    "description": {
+      "type": "richtext"
+    },
     "stock": {
       "type": "integer"
+    },
+    "image": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
+      "mappedBy": "product"
     }
   }
 }
